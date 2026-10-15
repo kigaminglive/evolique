@@ -2,9 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Card from "@/components/ui/card";
-import { getLatestAssessment, getAssessmentHistory } from "@/lib/assessment";
+import {
+  getLatestAssessment,
+  getAssessmentHistory,
+  AssessmentResult,
+  CategoryScore,
+} from "@/lib/assessment";
 import { getGoals } from "@/lib/goals";
-import { getTotalXP, getTodayCompletedCount, getCompletions } from "@/lib/challenges";
+import {
+  getTotalXP,
+  getTodayCompletedCount,
+  getCompletions,
+} from "@/lib/challenges";
 import { getActiveHabitsCount, getHabitCompletions } from "@/lib/habits";
 import { getJournalEntries } from "@/lib/journal";
 import { BarChart3 } from "lucide-react";
@@ -20,26 +29,27 @@ export default function AnalyticsPage() {
   const [activeGoals, setActiveGoals] = useState(0);
   const [completedGoals, setCompletedGoals] = useState(0);
   const [journalCount, setJournalCount] = useState(0);
-  const [categoryScores, setCategoryScores] = useState<
-    { category: string; score: number }[]
-  >([]);
+  const [categoryScores, setCategoryScores] = useState<CategoryScore[]>([]);
 
   useEffect(() => {
-    const latest = getLatestAssessment();
-    const history = getAssessmentHistory();
-    const goals = getGoals();
+    async function load() {
+      const latest = await getLatestAssessment();
+      const history = await getAssessmentHistory();
+      const goals = await getGoals();
 
-    setOverallScore(latest ? latest.overallScore : null);
-    setAssessmentCount(history.length);
-    setCategoryScores(latest ? latest.categoryScores : []);
-    setTotalXP(getTotalXP());
-    setTodayChallenges(getTodayCompletedCount());
-    setTotalChallengeCompletions(getCompletions().length);
-    setActiveHabits(getActiveHabitsCount());
-    setHabitCompletions(getHabitCompletions().length);
-    setActiveGoals(goals.filter((g) => g.status === "active").length);
-    setCompletedGoals(goals.filter((g) => g.status === "completed").length);
-    setJournalCount(getJournalEntries().length);
+      setOverallScore(latest ? latest.overallScore : null);
+      setAssessmentCount(history.length);
+      setCategoryScores(latest ? latest.categoryScores : []);
+      setTotalXP(getTotalXP());
+      setTodayChallenges(getTodayCompletedCount());
+      setTotalChallengeCompletions(getCompletions().length);
+      setActiveHabits(getActiveHabitsCount());
+      setHabitCompletions(getHabitCompletions().length);
+      setActiveGoals(goals.filter((g) => g.status === "active").length);
+      setCompletedGoals(goals.filter((g) => g.status === "completed").length);
+      setJournalCount(getJournalEntries().length);
+    }
+    load();
   }, []);
 
   return (
@@ -53,7 +63,6 @@ export default function AnalyticsPage() {
         </p>
       </div>
 
-      {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Card>
           <div className="text-sm text-foreground-secondary">Assessment Score</div>
@@ -75,7 +84,6 @@ export default function AnalyticsPage() {
         </Card>
       </div>
 
-      {/* Category Scores */}
       {categoryScores.length > 0 && (
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-foreground mb-4">
@@ -88,7 +96,9 @@ export default function AnalyticsPage() {
                   <span className="text-sm font-medium text-foreground">
                     {cat.category}
                   </span>
-                  <span className="text-sm font-bold text-primary">{cat.score}%</span>
+                  <span className="text-sm font-bold text-primary">
+                    {cat.score}%
+                  </span>
                 </div>
                 <div className="w-full h-2 bg-background-secondary rounded-full overflow-hidden">
                   <div
@@ -102,8 +112,9 @@ export default function AnalyticsPage() {
         </div>
       )}
 
-      {/* Activity Summary */}
-      <h2 className="text-lg font-semibold text-foreground mb-4">Activity Summary</h2>
+      <h2 className="text-lg font-semibold text-foreground mb-4">
+        Activity Summary
+      </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         <Card>
           <div className="flex items-center gap-3 mb-2">
@@ -136,9 +147,7 @@ export default function AnalyticsPage() {
             <BarChart3 size={18} className="text-primary" />
             <span className="font-medium text-foreground">Goals</span>
           </div>
-          <p className="text-sm text-foreground-secondary">
-            Active: {activeGoals}
-          </p>
+          <p className="text-sm text-foreground-secondary">Active: {activeGoals}</p>
           <p className="text-sm text-foreground-secondary">
             Completed: {completedGoals}
           </p>
@@ -155,11 +164,11 @@ export default function AnalyticsPage() {
         </Card>
       </div>
 
-      {/* Empty note */}
       {overallScore === null && totalXP === 0 && (
         <Card className="bg-background-secondary border-dashed text-center py-8">
           <p className="text-foreground-secondary">
-            Complete an assessment, challenges, or habits to see your analytics here.
+            Complete an assessment, challenges, or habits to see your analytics
+            here.
           </p>
         </Card>
       )}

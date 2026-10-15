@@ -10,9 +10,9 @@ export interface Recommendation {
   priority: number;
 }
 
-export function getRecommendations(): Recommendation[] {
+export async function getRecommendations(): Promise<Recommendation[]> {
   const recommendations: Recommendation[] = [];
-  const latest = getLatestAssessment();
+  const latest = await getLatestAssessment();
   const goals = getGoals().filter((g) => g.status === "active");
 
   // Rule 1: No assessment yet
@@ -102,8 +102,8 @@ export function getRecommendations(): Recommendation[] {
   return recommendations.sort((a, b) => a.priority - b.priority);
 }
 
-export function getCoachMessage(): string {
-  const latest = getLatestAssessment();
+export async function getCoachMessage(): Promise<string> {
+  const latest = await getLatestAssessment();
   const goals = getGoals().filter((g) => g.status === "active");
 
   if (!latest) {

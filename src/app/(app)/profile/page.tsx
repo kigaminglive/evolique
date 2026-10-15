@@ -6,9 +6,8 @@ import { useAuth } from "@/lib/auth-context";
 import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
 import { getLatestAssessment, AssessmentResult } from "@/lib/assessment";
-import { getGoals } from "@/lib/goals";
 import { getTotalXP, getCompletions } from "@/lib/challenges";
-import { getActiveHabitsCount, getHabitCompletions } from "@/lib/habits";
+import { getHabitCompletions } from "@/lib/habits";
 import { Edit2 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -19,45 +18,55 @@ export default function ProfilePage() {
   const [recentActivity, setRecentActivity] = useState<
     { text: string; date: string }[]
   >([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const assessment = getLatestAssessment();
-    setLatest(assessment);
-    setTotalXP(getTotalXP());
+    async function load() {
+      const assessment = await getLatestAssessment();
+      setLatest(assessment);
+      setTotalXP(getTotalXP());
 
-    // Simple streak approximation from habit completions
-    const habitCompletions = getHabitCompletions();
-    const uniqueDays = new Set(habitCompletions.map((c) => c.date));
-    setStreak(uniqueDays.size);
+      const habitCompletions = getHabitCompletions();
+      const uniqueDays = new Set(habitCompletions.map((c) => c.date));
+      setStreak(uniqueDays.size);
 
-    // Recent activity (simple)
-    const activity: { text: string; date: string }[] = [];
-    if (assessment) {
-      activity.push({
-        text: "Completed Self Assessment",
-        date: new Date(assessment.completedAt).toLocaleDateString("en-IN", {
-          day: "numeric",
-          month: "short",
-        }),
-      });
+      const activity: { text: string; date: string }[] = [];
+
+      if (assessment) {
+        activity.push({
+          text: "Completed Self Assessment",
+          date: new Date(assessment.completedAt).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+          }),
+        });
+      }
+
+      const challengeCompletions = getCompletions();
+      if (challengeCompletions.length > 0) {
+        activity.push({
+          text: "Completed a Daily Challenge",
+          date: new Date(
+            challengeCompletions[0].completedAt
+          ).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+          }),
+        });
+      }
+
+      if (habitCompletions.length > 0) {
+        activity.push({
+          text: "Checked in a Habit",
+          date: habitCompletions[habitCompletions.length - 1]?.date || "",
+        });
+      }
+
+      setRecentActivity(activity.slice(0, 3));
+      setLoading(false);
     }
-    const challengeCompletions = getCompletions();
-    if (challengeCompletions.length > 0) {
-      activity.push({
-        text: "Completed a Daily Challenge",
-        date: new Date(challengeCompletions[0].completedAt).toLocaleDateString(
-          "en-IN",
-          { day: "numeric", month: "short" }
-        ),
-      });
-    }
-    if (habitCompletions.length > 0) {
-      activity.push({
-        text: "Checked in a Habit",
-        date: habitCompletions[habitCompletions.length - 1]?.date || "",
-      });
-    }
-    setRecentActivity(activity.slice(0, 3));
+
+    load();
   }, []);
 
   const initials = user?.name
@@ -70,6 +79,14 @@ export default function ProfilePage() {
     : "U";
 
   const progressPercent = latest?.overallScore ?? 0;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <p className="text-foreground-secondary">Loading profile...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -99,7 +116,7 @@ export default function ProfilePage() {
           {user?.email}
         </p>
         <p className="text-xs text-foreground-secondary mt-1">
-          Development mode account
+          Account connected to Supabase
         </p>
 
         <div className="flex justify-center gap-3 mt-5">
@@ -116,12 +133,16 @@ export default function ProfilePage() {
       <h2 className="text-lg font-semibold text-foreground mb-3">Your Growth</h2>
       <div className="grid grid-cols-3 gap-3 mb-8">
         <Card className="text-center py-4">
-          <div className="text-2xl font-bold text-primary">{progressPercent}%</div>
+          <div className="text-2xl font-bold text-primary">
+            {progressPercent}%
+          </div>
           <div className="text-xs text-foreground-secondary mt-1">Progress</div>
         </Card>
         <Card className="text-center py-4">
           <div className="text-2xl font-bold text-primary">{streak}</div>
-          <div className="text-xs text-foreground-secondary mt-1">Day Streak</div>
+          <div className="text-xs text-foreground-secondary mt-1">
+            Day Streak
+          </div>
         </Card>
         <Card className="text-center py-4">
           <div className="text-2xl font-bold text-primary">{totalXP}</div>
@@ -141,7 +162,9 @@ export default function ProfilePage() {
                 <div key={cat.category}>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-foreground">{cat.category}</span>
-                    <span className="font-medium text-primary">{cat.score}%</span>
+                    <span className="font-medium text-primary">
+                      {cat.score}%
+                    </span>
                   </div>
                   <div className="w-full h-2 bg-background-secondary rounded-full overflow-hidden">
                     <div
@@ -156,7 +179,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Achievements (simple) */}
+      {/* Achievements */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-foreground mb-3">
           Achievements

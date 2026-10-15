@@ -8,10 +8,24 @@ import { getAssessmentHistory, AssessmentResult } from "@/lib/assessment";
 
 export default function AssessmentHistoryPage() {
   const [history, setHistory] = useState<AssessmentResult[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setHistory(getAssessmentHistory());
+    async function load() {
+      const data = await getAssessmentHistory();
+      setHistory(data);
+      setLoading(false);
+    }
+    load();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <p className="text-foreground-secondary">Loading history...</p>
+      </div>
+    );
+  }
 
   if (history.length === 0) {
     return (
@@ -46,7 +60,9 @@ export default function AssessmentHistoryPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="font-semibold text-foreground">
-                  {index === 0 ? "Latest Assessment" : `Attempt #${history.length - index}`}
+                  {index === 0
+                    ? "Latest Assessment"
+                    : `Attempt #${history.length - index}`}
                 </div>
                 <div className="text-sm text-foreground-secondary">
                   {new Date(item.completedAt).toLocaleDateString("en-IN", {

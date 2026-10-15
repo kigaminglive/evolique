@@ -19,21 +19,25 @@ import { getActiveHabitsCount } from "@/lib/habits";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [latestAssessment, setLatestAssessment] = useState<AssessmentResult | null>(null);
+  const [latestAssessment, setLatestAssessment] =
+    useState<AssessmentResult | null>(null);
   const [totalXP, setTotalXP] = useState(0);
   const [todayChallenges, setTodayChallenges] = useState(0);
   const [activeHabits, setActiveHabits] = useState(0);
 
   useEffect(() => {
-    setLatestAssessment(getLatestAssessment());
-    setTotalXP(getTotalXP());
-    setTodayChallenges(getTodayCompletedCount());
-    setActiveHabits(getActiveHabitsCount());
+    async function load() {
+      const latest = await getLatestAssessment();
+      setLatestAssessment(latest);
+      setTotalXP(getTotalXP());
+      setTodayChallenges(getTodayCompletedCount());
+      setActiveHabits(getActiveHabitsCount());
+    }
+    load();
   }, []);
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Welcome */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           Welcome back, {user?.name?.split(" ")[0] || "there"}!
@@ -43,7 +47,6 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card>
           <div className="flex items-center gap-3">
@@ -53,7 +56,9 @@ export default function DashboardPage() {
             <div>
               <div className="text-sm text-foreground-secondary">Assessment</div>
               <div className="font-semibold text-foreground">
-                {latestAssessment ? `${latestAssessment.overallScore}%` : "Not started"}
+                {latestAssessment
+                  ? `${latestAssessment.overallScore}%`
+                  : "Not started"}
               </div>
             </div>
           </div>
@@ -65,7 +70,9 @@ export default function DashboardPage() {
               <Target size={18} className="text-primary" />
             </div>
             <div>
-              <div className="text-sm text-foreground-secondary">Challenges Today</div>
+              <div className="text-sm text-foreground-secondary">
+                Challenges Today
+              </div>
               <div className="font-semibold text-foreground">
                 {todayChallenges} completed
               </div>
@@ -79,7 +86,9 @@ export default function DashboardPage() {
               <Calendar size={18} className="text-primary" />
             </div>
             <div>
-              <div className="text-sm text-foreground-secondary">Active Habits</div>
+              <div className="text-sm text-foreground-secondary">
+                Active Habits
+              </div>
               <div className="font-semibold text-foreground">{activeHabits}</div>
             </div>
           </div>
@@ -98,7 +107,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Assessment Summary */}
       {latestAssessment && (
         <Card className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -108,11 +116,10 @@ export default function DashboardPage() {
               </h3>
               <p className="text-sm text-foreground-secondary">
                 Completed on{" "}
-                {new Date(latestAssessment.completedAt).toLocaleDateString("en-IN", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}
+                {new Date(latestAssessment.completedAt).toLocaleDateString(
+                  "en-IN",
+                  { day: "numeric", month: "short", year: "numeric" }
+                )}
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -129,7 +136,6 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Recommended Actions */}
       <h2 className="text-xl font-semibold text-foreground mb-4">
         Recommended Next Steps
       </h2>
@@ -175,9 +181,7 @@ export default function DashboardPage() {
           <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-3">
             <Calendar size={18} />
           </div>
-          <h3 className="font-semibold text-foreground mb-2">
-            Build Habits
-          </h3>
+          <h3 className="font-semibold text-foreground mb-2">Build Habits</h3>
           <p className="text-sm text-foreground-secondary mb-4 flex-1">
             Create daily habits and track your consistency.
           </p>
