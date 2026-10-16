@@ -5,7 +5,6 @@ import Card from "@/components/ui/card";
 import {
   getLatestAssessment,
   getAssessmentHistory,
-  AssessmentResult,
   CategoryScore,
 } from "@/lib/assessment";
 import { getGoals } from "@/lib/goals";
@@ -30,27 +29,40 @@ export default function AnalyticsPage() {
   const [completedGoals, setCompletedGoals] = useState(0);
   const [journalCount, setJournalCount] = useState(0);
   const [categoryScores, setCategoryScores] = useState<CategoryScore[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       const latest = await getLatestAssessment();
       const history = await getAssessmentHistory();
       const goals = await getGoals();
+      const completions = await getCompletions();
+      const habitComps = await getHabitCompletions();
+      const journal = await getJournalEntries();
 
       setOverallScore(latest ? latest.overallScore : null);
       setAssessmentCount(history.length);
       setCategoryScores(latest ? latest.categoryScores : []);
-      setTotalXP(getTotalXP());
-      setTodayChallenges(getTodayCompletedCount());
-      setTotalChallengeCompletions(getCompletions().length);
-      setActiveHabits(getActiveHabitsCount());
-      setHabitCompletions(getHabitCompletions().length);
+      setTotalXP(await getTotalXP());
+      setTodayChallenges(await getTodayCompletedCount());
+      setTotalChallengeCompletions(completions.length);
+      setActiveHabits(await getActiveHabitsCount());
+      setHabitCompletions(habitComps.length);
       setActiveGoals(goals.filter((g) => g.status === "active").length);
       setCompletedGoals(goals.filter((g) => g.status === "completed").length);
-      setJournalCount(getJournalEntries().length);
+      setJournalCount(journal.length);
+      setLoading(false);
     }
     load();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <p className="text-foreground-secondary">Loading analytics...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">

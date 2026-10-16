@@ -24,9 +24,11 @@ export default function ProfilePage() {
     async function load() {
       const assessment = await getLatestAssessment();
       setLatest(assessment);
-      setTotalXP(getTotalXP());
 
-      const habitCompletions = getHabitCompletions();
+      const xp = await getTotalXP();
+      setTotalXP(xp);
+
+      const habitCompletions = await getHabitCompletions();
       const uniqueDays = new Set(habitCompletions.map((c) => c.date));
       setStreak(uniqueDays.size);
 
@@ -42,7 +44,7 @@ export default function ProfilePage() {
         });
       }
 
-      const challengeCompletions = getCompletions();
+      const challengeCompletions = await getCompletions();
       if (challengeCompletions.length > 0) {
         activity.push({
           text: "Completed a Daily Challenge",
@@ -90,7 +92,6 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <Link
           href="/settings"
@@ -104,7 +105,6 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      {/* Profile Header */}
       <div className="text-center mb-8">
         <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-primary text-2xl font-bold mx-auto mb-4">
           {initials}
@@ -112,9 +112,7 @@ export default function ProfilePage() {
         <h1 className="text-2xl font-bold text-foreground">
           {user?.name || "User"}
         </h1>
-        <p className="text-foreground-secondary text-sm mt-1">
-          {user?.email}
-        </p>
+        <p className="text-foreground-secondary text-sm mt-1">{user?.email}</p>
         <p className="text-xs text-foreground-secondary mt-1">
           Account connected to Supabase
         </p>
@@ -129,20 +127,15 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Your Growth Stats */}
       <h2 className="text-lg font-semibold text-foreground mb-3">Your Growth</h2>
       <div className="grid grid-cols-3 gap-3 mb-8">
         <Card className="text-center py-4">
-          <div className="text-2xl font-bold text-primary">
-            {progressPercent}%
-          </div>
+          <div className="text-2xl font-bold text-primary">{progressPercent}%</div>
           <div className="text-xs text-foreground-secondary mt-1">Progress</div>
         </Card>
         <Card className="text-center py-4">
           <div className="text-2xl font-bold text-primary">{streak}</div>
-          <div className="text-xs text-foreground-secondary mt-1">
-            Day Streak
-          </div>
+          <div className="text-xs text-foreground-secondary mt-1">Day Streak</div>
         </Card>
         <Card className="text-center py-4">
           <div className="text-2xl font-bold text-primary">{totalXP}</div>
@@ -150,7 +143,6 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      {/* Development Areas */}
       {latest && latest.categoryScores.length > 0 && (
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-foreground mb-3">
@@ -162,9 +154,7 @@ export default function ProfilePage() {
                 <div key={cat.category}>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-foreground">{cat.category}</span>
-                    <span className="font-medium text-primary">
-                      {cat.score}%
-                    </span>
+                    <span className="font-medium text-primary">{cat.score}%</span>
                   </div>
                   <div className="w-full h-2 bg-background-secondary rounded-full overflow-hidden">
                     <div
@@ -179,7 +169,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Achievements */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-foreground mb-3">
           Achievements
@@ -208,7 +197,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Recent Activity */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-foreground mb-3">
           Recent Activity
