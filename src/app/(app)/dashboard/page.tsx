@@ -8,8 +8,6 @@ import Link from "next/link";
 import {
   ClipboardList,
   Target,
-  BookOpen,
-  TrendingUp,
   Calendar,
   Award,
 } from "lucide-react";
@@ -24,17 +22,27 @@ export default function DashboardPage() {
   const [totalXP, setTotalXP] = useState(0);
   const [todayChallenges, setTodayChallenges] = useState(0);
   const [activeHabits, setActiveHabits] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       const latest = await getLatestAssessment();
       setLatestAssessment(latest);
-      setTotalXP(getTotalXP());
-      setTodayChallenges(getTodayCompletedCount());
-      setActiveHabits(getActiveHabitsCount());
+      setTotalXP(await getTotalXP());
+      setTodayChallenges(await getTodayCompletedCount());
+      setActiveHabits(await getActiveHabitsCount());
+      setLoading(false);
     }
     load();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <p className="text-foreground-secondary">Loading dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -43,10 +51,12 @@ export default function DashboardPage() {
           Welcome back, {user?.name?.split(" ")[0] || "there"}!
         </h1>
         <p className="text-foreground-secondary">
-          Continue your personal growth journey. Here&apos;s what you can do today.
+          Continue your personal growth journey. Here&apos;s what you can do
+          today.
         </p>
       </div>
 
+      {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card>
           <div className="flex items-center gap-3">
@@ -107,6 +117,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Assessment Summary */}
       {latestAssessment && (
         <Card className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -118,7 +129,11 @@ export default function DashboardPage() {
                 Completed on{" "}
                 {new Date(latestAssessment.completedAt).toLocaleDateString(
                   "en-IN",
-                  { day: "numeric", month: "short", year: "numeric" }
+                  {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  }
                 )}
               </p>
             </div>
@@ -136,6 +151,7 @@ export default function DashboardPage() {
         </Card>
       )}
 
+      {/* Recommended Actions */}
       <h2 className="text-xl font-semibold text-foreground mb-4">
         Recommended Next Steps
       </h2>

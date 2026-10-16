@@ -20,43 +20,52 @@ export default function HabitsPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [completedMap, setCompletedMap] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
 
   const today = getTodayDate();
 
-  function refresh() {
-    const allHabits = getHabits();
+  async function refresh() {
+    const allHabits = await getHabits();
     setHabits(allHabits);
 
     const map: Record<string, boolean> = {};
-    allHabits.forEach((h) => {
-      map[h.id] = isHabitCompletedOn(h.id, today);
-    });
+    for (const h of allHabits) {
+      map[h.id] = await isHabitCompletedOn(h.id, today);
+    }
     setCompletedMap(map);
+    setLoading(false);
   }
 
   useEffect(() => {
     refresh();
   }, []);
 
-  function handleAdd(e: React.FormEvent) {
+  async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-
-    addHabit(name.trim(), description.trim());
+    await addHabit(name.trim(), description.trim());
     setName("");
     setDescription("");
     setShowForm(false);
-    refresh();
+    await refresh();
   }
 
-  function handleToggle(habitId: string) {
-    toggleHabitCompletion(habitId, today);
-    refresh();
+  async function handleToggle(habitId: string) {
+    await toggleHabitCompletion(habitId, today);
+    await refresh();
   }
 
-  function handleDelete(id: string) {
-    deleteHabit(id);
-    refresh();
+  async function handleDelete(id: string) {
+    await deleteHabit(id);
+    await refresh();
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <p className="text-foreground-secondary">Loading habits...</p>
+      </div>
+    );
   }
 
   return (
@@ -70,13 +79,15 @@ export default function HabitsPage() {
             Build consistency with small daily habits.
           </p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2">
+        <Button
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center gap-2"
+        >
           <Plus size={16} />
           Add Habit
         </Button>
       </div>
 
-      {/* Add Form */}
       {showForm && (
         <Card className="mb-8">
           <form onSubmit={handleAdd} className="space-y-4">
@@ -93,7 +104,6 @@ export default function HabitsPage() {
                 placeholder="e.g. Read 10 pages"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
                 Description (optional)
@@ -106,10 +116,13 @@ export default function HabitsPage() {
                 placeholder="Why this habit matters"
               />
             </div>
-
             <div className="flex gap-3">
               <Button type="submit">Save Habit</Button>
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowForm(false)}
+              >
                 Cancel
               </Button>
             </div>
@@ -117,7 +130,6 @@ export default function HabitsPage() {
         </Card>
       )}
 
-      {/* Habits List */}
       {habits.length === 0 ? (
         <Card className="text-center py-12">
           <p className="text-foreground-secondary mb-4">
@@ -129,14 +141,12 @@ export default function HabitsPage() {
         <div className="space-y-3">
           {habits.map((habit) => {
             const done = completedMap[habit.id];
-
             return (
               <Card
                 key={habit.id}
                 className={done ? "border-success/40 bg-success/5" : ""}
               >
                 <div className="flex items-center gap-4">
-                  {/* Checkbox */}
                   <button
                     onClick={() => handleToggle(habit.id)}
                     className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors ${
@@ -147,12 +157,12 @@ export default function HabitsPage() {
                   >
                     {done && <Check size={14} />}
                   </button>
-
-                  {/* Content */}
                   <div className="flex-1">
                     <div
                       className={`font-medium ${
-                        done ? "text-foreground-secondary line-through" : "text-foreground"
+                        done
+                          ? "text-foreground-secondary line-through"
+                          : "text-foreground"
                       }`}
                     >
                       {habit.name}
@@ -163,8 +173,6 @@ export default function HabitsPage() {
                       </p>
                     )}
                   </div>
-
-                  {/* Delete */}
                   <button
                     onClick={() => handleDelete(habit.id)}
                     className="p-2 rounded-lg hover:bg-error/10 text-error"

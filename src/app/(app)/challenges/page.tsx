@@ -18,43 +18,54 @@ export default function ChallengesPage() {
   const [totalXP, setTotalXP] = useState(0);
   const [todayCount, setTodayCount] = useState(0);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  function refresh() {
+  async function refresh() {
     const map: Record<string, boolean> = {};
-    dailyChallenges.forEach((c) => {
-      map[c.id] = isChallengeCompletedToday(c.id);
-    });
+    for (const c of dailyChallenges) {
+      map[c.id] = await isChallengeCompletedToday(c.id);
+    }
     setCompletedMap(map);
-    setTotalXP(getTotalXP());
-    setTodayCount(getTodayCompletedCount());
+    setTotalXP(await getTotalXP());
+    setTodayCount(await getTodayCompletedCount());
+    setLoading(false);
   }
 
   useEffect(() => {
     refresh();
   }, []);
 
-  function handleComplete(challenge: Challenge) {
-    const success = completeChallenge(challenge);
+  async function handleComplete(challenge: Challenge) {
+    const success = await completeChallenge(challenge);
     if (success) {
       setMessage(`+${challenge.xp} XP earned!`);
       setTimeout(() => setMessage(""), 2500);
-      refresh();
+      await refresh();
     } else {
       setMessage("Already completed today");
       setTimeout(() => setMessage(""), 2000);
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <p className="text-foreground-secondary">Loading challenges...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Daily Challenges</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          Daily Challenges
+        </h1>
         <p className="text-foreground-secondary">
           Complete small challenges every day to build real skills and earn XP.
         </p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <Card>
           <div className="flex items-center gap-3">
@@ -63,18 +74,21 @@ export default function ChallengesPage() {
             </div>
             <div>
               <div className="text-sm text-foreground-secondary">Total XP</div>
-              <div className="text-xl font-bold text-foreground">{totalXP} XP</div>
+              <div className="text-xl font-bold text-foreground">
+                {totalXP} XP
+              </div>
             </div>
           </div>
         </Card>
-
         <Card>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
               <CheckCircle2 size={18} className="text-success" />
             </div>
             <div>
-              <div className="text-sm text-foreground-secondary">Today Completed</div>
+              <div className="text-sm text-foreground-secondary">
+                Today Completed
+              </div>
               <div className="text-xl font-bold text-foreground">
                 {todayCount} / {dailyChallenges.length}
               </div>
@@ -83,18 +97,15 @@ export default function ChallengesPage() {
         </Card>
       </div>
 
-      {/* Message */}
       {message && (
         <div className="mb-6 p-3 rounded-lg bg-primary/10 text-primary text-center font-medium">
           {message}
         </div>
       )}
 
-      {/* Challenge List */}
       <div className="space-y-4">
         {dailyChallenges.map((challenge) => {
           const done = completedMap[challenge.id];
-
           return (
             <Card
               key={challenge.id}
@@ -108,7 +119,6 @@ export default function ChallengesPage() {
                     <Circle size={22} className="text-foreground-secondary" />
                   )}
                 </div>
-
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold text-foreground">
@@ -125,7 +135,6 @@ export default function ChallengesPage() {
                     {challenge.category}
                   </div>
                 </div>
-
                 {!done && (
                   <Button size="sm" onClick={() => handleComplete(challenge)}>
                     Complete

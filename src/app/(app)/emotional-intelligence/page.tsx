@@ -17,13 +17,15 @@ export default function EmotionalIntelligencePage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-
   const [emotion, setEmotion] = useState("Calm");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  function refresh() {
-    setEntries(getJournalEntries());
+  async function refresh() {
+    const data = await getJournalEntries();
+    setEntries(data);
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -38,17 +40,22 @@ export default function EmotionalIntelligencePage() {
     setShowForm(false);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
 
     if (editingId) {
-      updateJournalEntry(editingId, emotion, title.trim(), content.trim());
+      await updateJournalEntry(
+        editingId,
+        emotion,
+        title.trim(),
+        content.trim()
+      );
     } else {
-      addJournalEntry(emotion, title.trim(), content.trim());
+      await addJournalEntry(emotion, title.trim(), content.trim());
     }
 
-    refresh();
+    await refresh();
     resetForm();
   }
 
@@ -60,11 +67,19 @@ export default function EmotionalIntelligencePage() {
     setShowForm(true);
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (confirm("Delete this journal entry?")) {
-      deleteJournalEntry(id);
-      refresh();
+      await deleteJournalEntry(id);
+      await refresh();
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <p className="text-foreground-secondary">Loading journal...</p>
+      </div>
+    );
   }
 
   return (
@@ -90,20 +105,17 @@ export default function EmotionalIntelligencePage() {
         </Button>
       </div>
 
-      {/* Privacy Note */}
       <Card className="mb-6 bg-background-secondary border-dashed">
         <div className="flex items-start gap-3">
           <Brain size={18} className="text-primary mt-0.5" />
           <div className="text-sm text-foreground-secondary">
-            <strong className="text-foreground">Privacy note:</strong> Your journal
-            entries are stored only on this device (LocalStorage). They are private
-            and not shared with anyone. This is a reflection tool, not therapy or
-            clinical support.
+            <strong className="text-foreground">Privacy note:</strong> Your
+            journal entries are private to your account and stored securely.
+            This is a reflection tool, not therapy.
           </div>
         </div>
       </Card>
 
-      {/* Form */}
       {showForm && (
         <Card className="mb-8">
           <h2 className="font-semibold text-foreground mb-4">
@@ -126,7 +138,6 @@ export default function EmotionalIntelligencePage() {
                 ))}
               </select>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
                 Title
@@ -140,7 +151,6 @@ export default function EmotionalIntelligencePage() {
                 placeholder="Short title for this entry"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
                 Reflection
@@ -154,7 +164,6 @@ export default function EmotionalIntelligencePage() {
                 placeholder="What happened? What did you feel? What did you learn?"
               />
             </div>
-
             <div className="flex gap-3">
               <Button type="submit">
                 {editingId ? "Update Entry" : "Save Entry"}
@@ -167,7 +176,6 @@ export default function EmotionalIntelligencePage() {
         </Card>
       )}
 
-      {/* Entries List */}
       {entries.length === 0 ? (
         <Card className="text-center py-12">
           <p className="text-foreground-secondary mb-4">
@@ -200,19 +208,16 @@ export default function EmotionalIntelligencePage() {
                     {entry.content}
                   </p>
                 </div>
-
                 <div className="flex gap-1">
                   <button
                     onClick={() => handleEdit(entry)}
                     className="p-2 rounded-lg hover:bg-background-secondary text-foreground-secondary"
-                    title="Edit"
                   >
                     <Edit2 size={16} />
                   </button>
                   <button
                     onClick={() => handleDelete(entry.id)}
                     className="p-2 rounded-lg hover:bg-error/10 text-error"
-                    title="Delete"
                   >
                     <Trash2 size={16} />
                   </button>

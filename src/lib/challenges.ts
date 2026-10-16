@@ -1,3 +1,5 @@
+import { createClient } from "@/lib/supabase/client";
+
 export interface Challenge {
   id: string;
   title: string;
@@ -17,7 +19,8 @@ export const dailyChallenges: Challenge[] = [
   {
     id: "daily-1",
     title: "Introduce yourself in 3 sentences",
-    description: "Write a short and clear self-introduction. Practice saying it out loud.",
+    description:
+      "Write a short and clear self-introduction. Practice saying it out loud.",
     category: "Communication",
     xp: 20,
     type: "daily",
@@ -25,7 +28,8 @@ export const dailyChallenges: Challenge[] = [
   {
     id: "daily-2",
     title: "Practice active listening",
-    description: "In your next conversation, focus fully on the other person without interrupting.",
+    description:
+      "In your next conversation, focus fully on the other person without interrupting.",
     category: "Listening",
     xp: 15,
     type: "daily",
@@ -41,7 +45,8 @@ export const dailyChallenges: Challenge[] = [
   {
     id: "daily-4",
     title: "Practice a 1-minute presentation",
-    description: "Pick any topic and speak about it for 1 minute. Record yourself if possible.",
+    description:
+      "Pick any topic and speak about it for 1 minute. Record yourself if possible.",
     category: "Confidence",
     xp: 25,
     type: "daily",
@@ -49,59 +54,77 @@ export const dailyChallenges: Challenge[] = [
   {
     id: "daily-5",
     title: "Reflect on a difficult conversation",
-    description: "Think about a recent difficult conversation. What went well? What could improve?",
+    description:
+      "Think about a recent difficult conversation. What went well? What could improve?",
     category: "Emotional Awareness",
     xp: 20,
     type: "daily",
   },
 ];
 
-export function getCompletions(): ChallengeCompletion[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const data = localStorage.getItem("evolique_challenge_completions");
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
+export async function getCompletions(): Promise<ChallengeCompletion[]> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("challenge_completions")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("completed_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((row) => ({
+    challengeId: row.challenge_id,
+    completedAt: row.completed_at,
+    xpEarned: row.xp_earned,
+  }));
 }
 
-export function saveCompletions(completions: ChallengeCompletion[]) {
-  localStorage.setItem("evolique_challenge_completions", JSON.stringify(completions));
-}
+export async function completeChallenge(
+  challenge: Challenge
+): Promise<boolean> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
 
-export function completeChallenge(challenge: Challenge): boolean {
-  const completions = getCompletions();
   const today = new Date().toDateString();
-
-  // Prevent duplicate completion on the same day
+  const completions = await getCompletions();
   const alreadyDone = completions.some(
     (c) =>
       c.challengeId === challenge.id &&
       new Date(c.completedAt).toDateString() === today
   );
-
   if (alreadyDone) return false;
 
-  completions.unshift({
-    challengeId: challenge.id,
-    completedAt: new Date().toISOString(),
-    xpEarned: challenge.xp,
+  const { error } = await supabase.from("challenge_completions").insert({
+    user_id: user.id,
+    challenge_id: challenge.id,
+    xp_earned: challenge.xp,
   });
 
-  saveCompletions(completions);
+  if (error) {
+    console.error("completeChallenge error:", error);
+    return false;
+  }
   return true;
 }
 
-export function getTotalXP(): number {
-  const completions = getCompletions();
+export async function getTotalXP(): Promise<number> {
+  const completions = await getCompletions();
   return completions.reduce((sum, c) => sum + c.xpEarned, 0);
 }
 
-export function isChallengeCompletedToday(challengeId: string): boolean {
-  const completions = getCompletions();
+export async function isChallengeCompletedToday(
+  challengeId: string
+): Promise<boolean> {
+  const completions = await getCompletions();
   const today = new Date().toDateString();
-
   return completions.some(
     (c) =>
       c.challengeId === challengeId &&
@@ -109,10 +132,9 @@ export function isChallengeCompletedToday(challengeId: string): boolean {
   );
 }
 
-export function getTodayCompletedCount(): number {
-  const completions = getCompletions();
+export async function getTodayCompletedCount(): Promise<number> {
+  const completions = await getCompletions();
   const today = new Date().toDateString();
-
   return completions.filter(
     (c) => new Date(c.completedAt).toDateString() === today
   ).length;

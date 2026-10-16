@@ -1,3 +1,5 @@
+import { createClient } from "@/lib/supabase/client";
+
 export interface JournalEntry {
   id: string;
   emotion: string;
@@ -20,56 +22,87 @@ export const emotionOptions = [
   "Other",
 ];
 
-export function getJournalEntries(): JournalEntry[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const data = localStorage.getItem("evolique_journal");
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
+export async function getJournalEntries(): Promise<JournalEntry[]> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("journal_entries")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((row) => ({
+    id: row.id,
+    emotion: row.emotion,
+    title: row.title,
+    content: row.content,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
 }
 
-export function saveJournalEntries(entries: JournalEntry[]) {
-  localStorage.setItem("evolique_journal", JSON.stringify(entries));
-}
-
-export function addJournalEntry(
+export async function addJournalEntry(
   emotion: string,
   title: string,
   content: string
-): JournalEntry {
-  const now = new Date().toISOString();
-  const entry: JournalEntry = {
-    id: Date.now().toString(),
-    emotion,
-    title,
-    content,
-    createdAt: now,
-    updatedAt: now,
-  };
+): Promise<JournalEntry | null> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
 
-  const entries = getJournalEntries();
-  entries.unshift(entry);
-  saveJournalEntries(entries);
-  return entry;
+  const { data, error } = await supabase
+    .from("journal_entries")
+    .insert({
+      user_id: user.id,
+      emotion,
+      title,
+      content,
+    })
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error("addJournalEntry error:", error);
+    return null;
+  }
+
+  return {
+    id: data.id,
+    emotion: data.emotion,
+    title: data.title,
+    content: data.content,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
 }
 
-export function updateJournalEntry(
+export async function updateJournalEntry(
   id: string,
   emotion: string,
   title: string,
   content: string
 ) {
-  const entries = getJournalEntries().map((e) =>
-    e.id === id
-      ? { ...e, emotion, title, content, updatedAt: new Date().toISOString() }
-      : e
-  );
-  saveJournalEntries(entries);
+  const supabase = createClient();
+  await supabase
+    .from("journal_entries")
+    .update({
+      emotion,
+      title,
+      content,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
 }
 
-export function deleteJournalEntry(id: string) {
-  const entries = getJournalEntries().filter((e) => e.id !== id);
-  saveJournalEntries(entries);
+export async function deleteJournalEntry(id: string) {
+  const supabase = createClient();
+  await supabase.from("journal_entries").delete().eq("id", id);
 }
